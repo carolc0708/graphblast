@@ -368,7 +368,7 @@ Info BlockMatrix32<T>::build(const std::vector<Index>* row_indices,
     ncapacity_ = nvals_ * kcap_ratio_;
     A.getSymmetry(&symmetric_); //set symmetric_
 
-    std::cout << nvals_ << ", " << ncapacity_ << ", " << (symmetric_?"true":"false") << std::endl;
+    //std::cout << nvals_ << ", " << ncapacity_ << ", " << (symmetric_?"true":"false") << std::endl;
 
     /* copy device memory to host */
     // allocate cpu first
@@ -453,18 +453,18 @@ const T BlockMatrix32<T>::operator[](Index ind) {
 template <typename T>
 Info BlockMatrix32<T>::print(bool force_update) {
   CHECK(gpuToCpu(force_update));
-  printArray("csrColInd", h_bcsrColInd_, std::min(nblocks_, 40));
-  printArray("csrRowPtr", h_bcsrRowPtr_, std::min(nblockrow_+1, 40));
-  printArray("csrVal",    h_bcsrVal_,    std::min(nblocks_, 40)); // (TODO) revise this print format
+  printArray("bcsrColInd", h_bcsrColInd_, std::min(nblocks_, 40));
+  printArray("bcsrRowPtr", h_bcsrRowPtr_, std::min(nblockrow_+1, 40));
+  printArray("bcsrVal",    h_bcsrVal_,    nblocks_); // (TODO) revise this print format
   //CHECK(printBCSR("pretty print")); // also this
-  if (format_ == GrB_BLOCK_MATRIX_32_BCSRBCSC) {
-    if (!h_bcscRowInd_ || !h_bcscColPtr_ || !h_bcscVal_)
-      //syncCpu();
-    printArray("cscRowInd", h_bcscRowInd_, std::min(nblocks_, 40));
-    printArray("cscColPtr", h_bcscColPtr_, std::min(nblockrow_+1, 40));
-    printArray("cscVal",    h_bcscVal_,    std::min(nblocks_, 40)); // (TODO) revise this print format
-    //CHECK(printBCSC("pretty print")); // and this
-  }
+//  if (format_ == GrB_BLOCK_MATRIX_32_BCSRBCSC) {
+//    if (!h_bcscRowInd_ || !h_bcscColPtr_ || !h_bcscVal_)
+//      //syncCpu();
+//    printArray("bcscRowInd", h_bcscRowInd_, std::min(nblocks_, 40));
+//    printArray("bcscColPtr", h_bcscColPtr_, std::min(nblockrow_+1, 40));
+//    printArray("bcscVal",    h_bcscVal_,    nblocks_); // (TODO) revise this print format
+//    //CHECK(printBCSC("pretty print")); // and this
+//  }
   return GrB_SUCCESS;
 }
 

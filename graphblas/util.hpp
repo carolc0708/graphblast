@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <string.h>
 
 // for commandline arguments
 #include <boost/program_options.hpp>
@@ -436,11 +437,31 @@ int readMtx(const char*                    fname,
 template<typename T>
 void printArray(const char* str, const T *array, int length = 40,
                 bool limit = true) {
-  if (limit && length > 40) length = 40;
-  std::cout << str << ":\n";
-  for (int i = 0; i < length; i++)
-    std::cout << "[" << i << "]:" << array[i] << " ";
-  std::cout << "\n";
+
+  if (strcmp(str, "bcsrVal") == 0 || strcmp(str, "bcscVal") == 0) {
+
+    //if (limit && length > 40) length = 40*32*32;
+    std::cout << str << ":\n";
+    for (int i = 0; i < length*32*32; i+=32*32) {
+        std::cout << "[" << i/(32*32) << "]:";
+        for (int j = i; j < i+32*32; j++)
+            std::cout << array[j];
+        std::cout << std::endl;
+    }
+
+    std::cout << "\n";
+
+  } else {
+
+    if (limit && length > 40) length = 40;
+        std::cout << str << ":\n";
+    for (int i = 0; i < length; i++)
+        std::cout << "[" << i << "]:" << array[i] << " ";
+    std::cout << "\n";
+
+  }
+
+
 }
 
 template<typename T>
