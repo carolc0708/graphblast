@@ -106,8 +106,10 @@ class SparseMatrix {
   Info syncCpu();   // synchronizes CSR and CSC representations
 
  private:
-  const T kcap_ratio_    = 1.2f;  // Note: nasty bug if this is set to 1.f!
-  const T kresize_ratio_ = 1.2f;
+  const Index kcap_ratio_ = 1;
+  const Index kresize_ratio_ =1;
+  //const T kcap_ratio_    = 1.2f;  // Note: nasty bug if this is set to 1.f!
+  //const T kresize_ratio_ = 1.2f;
 
   Index nrows_;
   Index ncols_;

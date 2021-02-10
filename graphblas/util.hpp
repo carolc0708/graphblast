@@ -209,6 +209,8 @@ void readTuples(std::vector<graphblas::Index>* row_indices,
     type_str[1] = 'd';
   else if (typeid(mtxT) == typeid(float))
     type_str[1] = 'f';
+//  else if (typeid(mtxT) == typeid(double))
+//    type_str[1] = 'f';
 
   // Currently checks if there are fewer rows than promised
   // Could add check for edges in diagonal of adjacency matrix
@@ -406,24 +408,26 @@ int readMtx(const char*                    fname,
       std::cout << "Error: Unable to open file for reading!\n";
     } else {
     // Empty arrays indicate to Matrix::build that binary file exists
-      row_indices->clear();
-      col_indices->clear();
-      values->clear();
+//      row_indices->clear();
+//      col_indices->clear();
+//      values->clear();
     }
-  } else {
+//  } else {
+//
+  }
+
     if (mm_is_integer(matcode))
-      readTuples<T, int>(row_indices, col_indices, values, *nvals, f);
+        readTuples<T, int>(row_indices, col_indices, values, *nvals, f);
     else if (mm_is_real(matcode))
-      readTuples<T, float>(row_indices, col_indices, values, *nvals, f);
+        readTuples<T, float>(row_indices, col_indices, values, *nvals, f);
     else if (mm_is_pattern(matcode))
-      readTuples<T>(row_indices, col_indices, values, *nvals, f);
+        readTuples<T>(row_indices, col_indices, values, *nvals, f);
 
     removeSelfloop<T>(row_indices, col_indices, values, nvals, is_undirected);
     customSort<T>(row_indices, col_indices, values);
 
     if (mtxinfo) mm_write_banner(stdout, matcode);
     if (mtxinfo) mm_write_mtx_crd_size(stdout, *nrows, *ncols, *nvals);
-  }
 
   // TODO(@ctcyang): parse ret_code
   return ret_code;

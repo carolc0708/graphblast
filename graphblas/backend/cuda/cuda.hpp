@@ -28,6 +28,7 @@
 #include "graphblas/backend/cuda/dense_vector.hpp"
 #include "graphblas/backend/cuda/sparse_matrix.hpp"
 #include "graphblas/backend/cuda/dense_matrix.hpp"
+#include "graphblas/backend/cuda/block_matrix_32.hpp"
 #include "graphblas/backend/cuda/operations.hpp"
 #include "graphblas/backend/cuda/kernels/kernels.hpp"
 
