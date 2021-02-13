@@ -88,7 +88,7 @@ template <typename T>
 Info BlockMatrix<T>::nrows(Index* nrows) const {
     if (nrows == NULL) return GrB_NULL_POINTER;
     backend::BlockMatrix<T>* block_matrix_t = const_cast<backend::BlockMatrix<T>*>(&block_matrix_);
-    return block_matrix_->nrows(nrows);
+    return block_matrix_t->nrows(nrows);
 }
 
 template <typename T>
@@ -101,7 +101,7 @@ Info BlockMatrix<T>::ncols(Index* ncols) const {
 template <typename T>
 Info BlockMatrix<T>::nvals(Index* nvals) const {
     if (nvals == NULL) return GrB_NULL_POINTER;
-    backend::Matrix<T>* block_matrix_t = const_cast<backend::BlockMatrix<T>*>(&block_matrix_);
+    backend::BlockMatrix<T>* block_matrix_t = const_cast<backend::BlockMatrix<T>*>(&block_matrix_);
     return block_matrix_t->nvals(nvals);
 }
 

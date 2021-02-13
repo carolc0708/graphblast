@@ -200,6 +200,8 @@ class BlockMatrix32 {
     Index ncapacity_;
     Index nempty_; // non-used variable
 
+    std::size_t sizeof_block;
+
     // block csr specific
     Index nblocks_;
     Index nblockrow_;
@@ -353,7 +355,7 @@ Info BlockMatrix32<T>::build(const std::vector<Index>* row_indices,
                              Index                     nvals,
                              BinaryOpT                 dup,
                              char*                     dat_name) {
-
+    std::cout << "nrows: " << nrows_ << ", nvals: " << nvals << std::endl;
     /* read in the matrix as csr first */
     // Initialize sparse matrix A
     SparseMatrix<T> A(nrows_, ncols_);
@@ -374,13 +376,17 @@ Info BlockMatrix32<T>::build(const std::vector<Index>* row_indices,
     // allocate cpu first
     CHECK(allocateCpu());
 
+    std::cout << "line379: blocksize_: " << blocksize_ << ", nblockrow_: " << nblockrow_ << ", nblocks_: " << nblocks_ << std::endl;
+    std::cout << "line379: copy: " <<  (nblockrow_+1) * sizeof(Index) << ", " << nblocks_ * sizeof(Index) << ", "
+    << sizeof_block << std::endl;
     CUDA_CALL(cudaMemcpy(h_bcsrRowPtr_, d_bcsrRowPtr_, (nblockrow_+1) * sizeof(Index), cudaMemcpyDeviceToHost));
     CUDA_CALL(cudaMemcpy(h_bcsrColInd_, d_bcsrColInd_, nblocks_ * sizeof(Index), cudaMemcpyDeviceToHost));
-    CUDA_CALL(cudaMemcpy(h_bcsrVal_, d_bcsrVal_, nblocks_ * (blocksize_ * blocksize_) * sizeof(T), cudaMemcpyDeviceToHost));
 
-    CUDA_CALL(cudaMemcpy(h_bcscColPtr_, d_bcscColPtr_, (nblockrow_+1) * sizeof(Index), cudaMemcpyDeviceToHost));
-    CUDA_CALL(cudaMemcpy(h_bcscRowInd_, d_bcscRowInd_, nblocks_ * sizeof(Index), cudaMemcpyDeviceToHost));
-    CUDA_CALL(cudaMemcpy(h_bcscVal_, d_bcscVal_, nblocks_ * (blocksize_ * blocksize_) * sizeof(T), cudaMemcpyDeviceToHost));
+    CUDA_CALL(cudaMemcpy(h_bcsrVal_, d_bcsrVal_, sizeof_block, cudaMemcpyDeviceToHost));
+
+//    CUDA_CALL(cudaMemcpy(h_bcscColPtr_, d_bcscColPtr_, (nblockrow_+1) * sizeof(Index), cudaMemcpyDeviceToHost));
+//    CUDA_CALL(cudaMemcpy(h_bcscRowInd_, d_bcscRowInd_, nblocks_ * sizeof(Index), cudaMemcpyDeviceToHost));
+//    CUDA_CALL(cudaMemcpy(h_bcscVal_, d_bcscVal_, nblocks_ * (blocksize_ * blocksize_) * sizeof(T), cudaMemcpyDeviceToHost));
 
     //A.~SparseMatrix();
 
@@ -604,12 +610,13 @@ Info BlockMatrix32<T>::allocateCpu() {
     } else {
         std::cout << "Do not allocate " << nblocks_ << " " << h_bcscRowInd_ << std::endl;
     }
-
+    std::cout << "blocksize_: " << blocksize_ << ", nblockrow_: " << nblockrow_ << ", nblocks_: " << nblocks_ << std::endl;
     if (nblocks_ > 0 && h_bcscVal_ == NULL) {
-        h_bcscVal_ = reinterpret_cast<T*>(malloc(nblocks_ * (blocksize_ * blocksize_) * sizeof(T)));
-        std::cout << "Allocate " << nblocks_ * (blocksize_ * blocksize_) << std::endl;
+        std::cout << "Allocate hbcscVal_: " << sizeof_block << std::endl;
+        h_bcscVal_ = reinterpret_cast<T*>(malloc(sizeof_block));
+        std::cout << "Allocate hbcscVal_: " << sizeof_block << std::endl;
     } else {
-        std::cout << "Do not allocate " << nblocks_ * (blocksize_ * blocksize_) << " " << h_bcscVal_ << std::endl;
+        std::cout << "Do not allocate " << sizeof_block << " " << h_bcscVal_ << std::endl;
     }
 
     return GrB_SUCCESS;
@@ -786,8 +793,6 @@ void BlockMatrix32<T>::csr2bcsr(SparseMatrix<T>* A, const Index blocksize) {
     cusparseSetMatType(bcsr_descr,CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(bcsr_descr,CUSPARSE_INDEX_BASE_ZERO);
 
-    // should separte two different descr, although content are the same
-
     // count nnz blocks
     Index base, nbNnzBlocks;
     Index* nnzTotalDevHostPtr = &nbNnzBlocks;
@@ -806,12 +811,18 @@ void BlockMatrix32<T>::csr2bcsr(SparseMatrix<T>* A, const Index blocksize) {
     }
 
     nblocks_ = nbNnzBlocks;
+    std::cout << "blocksize_: " << blocksize_ << ", nblockrow_: " << nblockrow_ << ", nblocks_: " << nblocks_ << std::endl;
 
-    //std::cout << "nblocks_: " << nblocks_ << ", blocksize_: " << blocksize_ << ", nblockrow_: " << nblockrow_ << std::endl;
+
+    CudaCheck(cudaMalloc((void**)&d_bcsrColInd_, sizeof(Index) * nblocks_));
+    sizeof_block = sizeof(T) * (blocksize_ * blocksize_) * nblocks_;
+//    std::cout << "sizeof_block:" <<  sizeof_block << std::endl;
+//    int piupiu;
+//    std::cin >> piupiu;
+
+    CudaCheck(cudaMalloc((void**)&d_bcsrVal_, sizeof_block)); // out of memory error
 
 
-    CudaCheck(cudaMalloc((void**)&d_bcsrColInd_, sizeof(Index) * nbNnzBlocks));
-    CudaCheck(cudaMalloc((void**)&d_bcsrVal_, sizeof(T) * (blocksize_ * blocksize_) * nbNnzBlocks)); // out of memory error
     cusparseScsr2bsr(cusparseHandle, CUSPARSE_DIRECTION_COLUMN,
                      nrows_, ncols_, csr_descr, A->d_csrVal_, A->d_csrRowPtr_,
                      A->d_csrColInd_, blocksize_, bcsr_descr, d_bcsrVal_, d_bcsrRowPtr_, d_bcsrColInd_);
@@ -819,12 +830,12 @@ void BlockMatrix32<T>::csr2bcsr(SparseMatrix<T>* A, const Index blocksize) {
     //std::cout << "nblocks_: " << nblocks_ << ", blocksize_: " << blocksize_ << ", nblockrow_: " << nblockrow_ << std::endl;
 
     // copy d_csr to d_csc
-    CudaCheck(cudaMalloc((void **)&d_bcscColPtr_, sizeof(Index) * (nblockrow_ + 1)));
-    CudaCheck(cudaMemcpy(d_bcscColPtr_, d_bcsrRowPtr_, sizeof(Index) * (nblockrow_ + 1), cudaMemcpyDeviceToDevice));
-    CudaCheck(cudaMalloc((void **)&d_bcscRowInd_, sizeof(Index) * nblocks_));
-    CudaCheck(cudaMemcpy(d_bcscRowInd_, d_bcsrColInd_, sizeof(Index) * nblocks_, cudaMemcpyDeviceToDevice));
-    CudaCheck(cudaMalloc((void **)&d_bcscVal_, sizeof(T) * (blocksize_ * blocksize_) * nblocks_));
-    CudaCheck(cudaMemcpy(d_bcscVal_, d_bcsrVal_, sizeof(T) * (blocksize_ * blocksize_) * nblocks_, cudaMemcpyDeviceToDevice));
+//    CudaCheck(cudaMalloc((void **)&d_bcscColPtr_, (sizeof(Index) * (nblockrow_ + 1))));
+//    CudaCheck(cudaMemcpy(d_bcscColPtr_, d_bcsrRowPtr_, (sizeof(Index) * (nblockrow_ + 1)), cudaMemcpyDeviceToDevice));
+//    CudaCheck(cudaMalloc((void **)&d_bcscRowInd_, (sizeof(Index) * nblocks_)));
+//    CudaCheck(cudaMemcpy(d_bcscRowInd_, d_bcsrColInd_, (sizeof(Index) * nblocks_), cudaMemcpyDeviceToDevice));
+//    CudaCheck(cudaMalloc((void **)&d_bcscVal_, (sizeof(T) * (blocksize_ * blocksize_) * nblocks_)));
+//    CudaCheck(cudaMemcpy(d_bcscVal_, d_bcsrVal_, (sizeof(T) * (blocksize_ * blocksize_) * nblocks_), cudaMemcpyDeviceToDevice));
 
     // free descr and handle memory
     cusparseDestroyMatDescr(csr_descr);

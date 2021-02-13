@@ -10,6 +10,9 @@ class Vector;
 template <typename T>
 class Matrix;
 
+template <typename T>
+class BlockMatrix;
+
 template <typename U>
 inline Info checkDimVecNvals(const Vector<U>*   u,
                              const std::string& str) {
@@ -84,7 +87,38 @@ inline Info checkDimRowSize(const Matrix<a>*   A,
 }
 
 template <typename a, typename U>
+inline Info checkDimRowSize(const BlockMatrix<a>*   A,
+                            const Vector<U>*   u,
+                            const std::string& str) {
+  if (A == NULL || u == NULL) return GrB_SUCCESS;
+  Index A_nrows, u_size;
+  CHECK(A->nrows(&A_nrows));
+  CHECK(u->size(&u_size));
+  if (A_nrows != u_size) {
+    std::cout << str << std::endl;
+    return GrB_DIMENSION_MISMATCH;
+  }
+  return GrB_SUCCESS;
+}
+
+
+template <typename a, typename U>
 inline Info checkDimColSize(const Matrix<a>* A,
+                            const Vector<U>* u,
+                            const std::string& str) {
+  if (A == NULL || u == NULL) return GrB_SUCCESS;
+  Index A_ncols, u_size;
+  CHECK(A->ncols(&A_ncols));
+  CHECK(u->size(&u_size));
+  if (A_ncols != u_size) {
+    std::cout << str << std::endl;
+    return GrB_DIMENSION_MISMATCH;
+  }
+  return GrB_SUCCESS;
+}
+
+template <typename a, typename U>
+inline Info checkDimColSize(const BlockMatrix<a>* A,
                             const Vector<U>* u,
                             const std::string& str) {
   if (A == NULL || u == NULL) return GrB_SUCCESS;
@@ -112,6 +146,7 @@ inline Info checkDimSizeSize(const Vector<U>*   u,
   }
   return GrB_SUCCESS;
 }
+
 }  // namespace graphblas
 
 #endif  // GRAPHBLAS_DIMENSION_HPP_
